@@ -1,0 +1,43 @@
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - errorlint
+    - gocritic
+    - gosec
+    - intrange
+    - misspell
+    - modernize
+    - nilerr
+    - noctx
+    - revive
+    - unconvert
+    - usestdlibvars
+
+  settings:
+    gosec:
+      excludes:
+        - G204 # tests build the plugin and start runnel
+        - G304 # tests read files they name
+        - G703 # ldaptest writes the files of the test server
+  exclusions:
+    rules:
+      # Tests use fixed paths, plain HTTP calls and odd keys on purpose.
+      - path: _test\.go
+        linters: [bodyclose, gosec, noctx]
+      - path: internal/ldaptest/
+        linters: [gosec]
+      - path: _test\.go
+        text: "mapKey:"
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/runnelhq/plugin-ldap

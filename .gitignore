@@ -1,0 +1,7 @@
+bin/
+/dist/
+*.exe
+*.test
+*.out
+/examples/hello/hello
+/ldap
