@@ -1,0 +1,10 @@
+kind: Plugin
+apiVersion: runnel/v1
+name: ldap
+version: 0.1.0
+description: Searches, checks sign-ins and changes entries in LDAP directories such as Active Directory
+namespace: ldap
+executable:
+  windows: bin/ldap.exe
+  linux: bin/ldap
+  darwin: bin/ldap
