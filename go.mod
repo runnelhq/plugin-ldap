@@ -2,6 +2,8 @@ module github.com/runnelhq/plugin-ldap
 
 go 1.26.0
 
+toolchain go1.26.11
+
 require (
 	github.com/go-ldap/ldap/v3 v3.4.15
 	github.com/runnelhq/sdk-go v0.0.0-20261124233523-cd43f97fcb9f
