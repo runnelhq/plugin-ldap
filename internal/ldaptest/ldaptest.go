@@ -54,6 +54,7 @@ cn: Alice Doe
 sn: Doe
 mail: alice@example.org
 userPassword: alice-pw
+employeeNumber: 1001
 jpegPhoto:: /9j/4AAQ
 
 dn: uid=bob,ou=people,dc=example,dc=org
@@ -64,6 +65,7 @@ sn: Roe
 mail: bob@example.org
 mail: robert@example.org
 userPassword: bob-pw
+employeeNumber: 1002
 
 dn: cn=staff,ou=groups,dc=example,dc=org
 objectClass: groupOfNames

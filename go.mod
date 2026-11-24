@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.15
-	github.com/runnelhq/sdk-go v0.0.0-20261124231431-bf7494d050b0
+	github.com/runnelhq/sdk-go v0.0.0-20261124233523-cd43f97fcb9f
 )
 
 require (

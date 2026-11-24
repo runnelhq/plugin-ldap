@@ -188,39 +188,56 @@ func search(ctx context.Context, call *runnel.Call, c searchConfig) (any, error)
 
 // searchAll reads all entries, page by page, and fails once there are more than limit.
 func (s *session) searchAll(ctx context.Context, base string, scope int, filter string, attrs []string, limit, pageSize int) ([]entry, error) {
-	req := ldap.NewSearchRequest(base, scope, ldap.NeverDerefAliases, 0, 0, false, filter, attrs, nil)
+	entries := []entry{}
+	tooMany := &tooManyError{limit}
+	serverLimit := 0
 	if pageSize == 0 {
-		req.SizeLimit = limit + 1
+		serverLimit = limit + 1
 	}
+	err := s.searchPages(ctx, base, scope, filter, attrs, pageSize, serverLimit, func(page []*ldap.Entry) (bool, error) {
+		for _, e := range page {
+			if len(entries) == limit {
+				return true, tooMany
+			}
+			entries = append(entries, entryOf(e))
+		}
+		return false, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+// searchPages searches with paged results (pageSize > 0) and passes each page to fn until
+// fn stops or the search ends. serverLimit is the size limit sent to the server (0: none);
+// reaching it ends the search without error, after the entries the server sent.
+func (s *session) searchPages(ctx context.Context, base string, scope int, filter string, attrs []string, pageSize, serverLimit int, fn func([]*ldap.Entry) (bool, error)) error {
+	req := ldap.NewSearchRequest(base, scope, ldap.NeverDerefAliases, serverLimit, 0, false, filter, attrs, nil)
 	var paging *ldap.ControlPaging
 	if pageSize > 0 {
 		paging = ldap.NewControlPaging(uint32(min(pageSize, maxEntries))) //nolint:gosec // bounded above
 		req.Controls = []ldap.Control{paging}
 	}
-	entries := []entry{}
-	tooMany := &tooManyError{limit}
 	for {
 		res, err := s.Search(req)
 		if res != nil {
-			for _, e := range res.Entries {
-				if len(entries) == limit {
-					return nil, tooMany
-				}
-				entries = append(entries, entryOf(e))
+			if stop, ferr := fn(res.Entries); ferr != nil || stop {
+				return ferr
 			}
 		}
 		if err != nil {
-			if ldap.IsErrorWithCode(err, ldap.LDAPResultSizeLimitExceeded) && pageSize == 0 && len(entries) == limit {
-				return nil, tooMany
+			if serverLimit > 0 && ldap.IsErrorWithCode(err, ldap.LDAPResultSizeLimitExceeded) {
+				return nil
 			}
-			return nil, fmt.Errorf("search in %q: %w", base, explain(ctx, err))
+			return fmt.Errorf("search in %q: %w", base, explain(ctx, err))
 		}
 		if paging == nil {
-			return entries, nil
+			return nil
 		}
 		ctrl, _ := ldap.FindControl(res.Controls, ldap.ControlTypePaging).(*ldap.ControlPaging)
 		if ctrl == nil || len(ctrl.Cookie) == 0 {
-			return entries, nil
+			return nil
 		}
 		paging.SetCookie(ctrl.Cookie)
 	}

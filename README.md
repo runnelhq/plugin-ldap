@@ -1,7 +1,7 @@
 # plugin-ldap – LDAP und Active Directory für Runnel
 
 Offizielles [Runnel](https://github.com/runnelhq/runnel)-Plugin: sucht in Verzeichnissen (Active Directory, OpenLDAP
-u. a.), prüft Anmeldungen und ändert Einträge. Gebaut mit dem [Go-SDK](https://github.com/runnelhq/sdk-go) und
+u. a.), prüft Anmeldungen, ändert Einträge und liest Einträge als Datensätze in Pipelines. Gebaut mit dem [Go-SDK](https://github.com/runnelhq/sdk-go) und
 [go-ldap](https://github.com/go-ldap/ldap) (MIT).
 
 | | |
@@ -9,7 +9,8 @@ u. a.), prüft Anmeldungen und ändert Einträge. Gebaut mit dem [Go-SDK](https:
 | Namensraum | `ldap` |
 | Connection-Typ | `ldap` (mit „Test connection“ im Editor) |
 | Actions | `ldap.search`, `ldap.authenticate`, `ldap.add`, `ldap.modify`, `ldap.delete` |
-| Runnel | ab S49c (Actions und Connection-Typen aus Plugins) |
+| Transforms | `ldap.input` (Eingabe mit „Detect fields“) |
+| Runnel | Actions und Connection-Typ ab S49c, `ldap.input` ab S50b |
 | Lizenz | MIT; Lizenzen der Abhängigkeiten in `THIRD_PARTY_NOTICES` |
 
 ## Installieren
@@ -146,8 +147,54 @@ zutrifft. Findet `userFilter` mehrere Benutzer, scheitert die Action.
 Ergebnis: `dn` und `changed` (bei `ldap.delete` mit `ignoreMissing` `false`, wenn es den Eintrag nicht gab). Die
 Reihenfolge in `ldap.modify` ist `delete`, `add`, `replace`, je Attribut alphabetisch.
 
+### Transform `ldap.input` – Einträge als Datensätze
+
+Eine Eingabe für Pipelines: liest die Einträge einer Suche seitenweise und gibt sie als Datensätze weiter. Weil die
+Pipeline über Kredite bremst, liegt immer nur etwa eine Seite im Speicher – auch bei 100.000 Benutzern.
+
+```yaml
+transforms:
+  - id: users
+    type: ldap.input
+    with:
+      connection: ad
+      baseDn: OU=Users,DC=example,DC=com
+      filter: (&(objectClass=user)(department={dept}))
+      filterValues: { dept: ${DEPARTMENT} }
+      pageSize: 500                 # Standard; 0: ohne Paging
+      # sizeLimit: 1000             # höchstens so viele Einträge; 0 (Standard): alle
+      fields:
+        - { name: login, from: sAMAccountName }
+        - { name: dn }              # der DN des Eintrags
+        - { name: mail }
+        - { name: groups, from: memberOf, type: json }
+        - { name: lastLogon, from: lastLogonTimestamp, type: datetime }
+        - { name: guid, from: objectGUID }
+  - id: write
+    type: csv.output
+    with: { path: users.csv }
+links:
+  - { from: users, to: write }
+```
+
+| Typ | Wert |
+|---|---|
+| `string` (Standard) | Text; mehrere Werte verbunden mit `separator` (Standard `; `); GUID/SID lesbar, andere binäre Werte Base64 |
+| `int`, `bool` | erster Wert als Zahl bzw. `TRUE`/`FALSE` |
+| `datetime` | LDAP-Zeit (`20261124103000Z`) oder Datei-Zeit von Active Directory (`pwdLastSet`, `lastLogonTimestamp`, `accountExpires`; `0` und „nie“ werden leer) |
+| `binary` | erster Wert als Bytes (z. B. `thumbnailPhoto`) |
+| `json` | Liste aller Werte |
+
+- Fehlt ein Attribut, ist das Feld leer (`null`). Passt ein Wert nicht zum Typ, geht der Datensatz auf den
+  **Fehler-Link** (`_error`, `_errorField`).
+- Ohne `fields` kommen `dn` und alle Attribute des Eintrags als Text; die Felder hinter der Eingabe sind dann offen.
+- **„Detect fields“** im Editor liest die ersten Einträge (mit allen Attributen) und schlägt je Attribut einen Typ vor:
+  `json` bei mehreren Werten, `datetime` bei LDAP- und Datei-Zeiten, `int`, `bool`, `binary`, sonst `string`.
+- `runnel validate` prüft über `transform.init` Filter, `scope` und `fields` (Namen doppelt, unbekannter Typ), ohne
+  sich zu verbinden; die Felder sind danach für folgende Transforms bekannt.
+
 Nicht enthalten (Ideen für später): Passwörter in Active Directory setzen (`unicodePwd`), Einträge umbenennen oder
-verschieben (`modifyDN`), Kerberos/NTLM-Anmeldung, ein Transform für Pipelines (sobald Runnel Plugin-Transforms kann).
+verschieben (`modifyDN`), Kerberos/NTLM-Anmeldung, ein Transform zum Nachschlagen je Datensatz (`ldap.lookup`).
 
 ## Entwickeln
 
@@ -158,6 +205,7 @@ verschieben (`modifyDN`), Kerberos/NTLM-Anmeldung, ein Transform für Pipelines 
 | Tests gegen Runnel | `make runnel-test RUNNEL_BIN=../runnel/bin/runnel` |
 | Lint (golangci-lint v2.15.0) | `make lint` (ohne passendes golangci-lint: `make bin/tools/golangci-lint lint GOLANGCI_LINT=bin/tools/golangci-lint`) |
 | Fuzzing | `make fuzz FUZZTIME=1m` |
+| Benchmark | `make bench` |
 | Release-Archive | `make dist` → `dist/*.zip`, `dist/SHA256SUMS` |
 
 Unter Ubuntu verhindert das AppArmor-Profil von `slapd` den Zugriff auf temporäre Ordner; die CI schaltet es ab. Gegen

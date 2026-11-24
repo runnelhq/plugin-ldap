@@ -6,7 +6,7 @@ FUZZTIME      ?= 30s
 # Runnel für die Tests gegen den Host, z. B. RUNNEL_BIN=../runnel/bin/runnel
 RUNNEL_BIN    ?=
 
-.PHONY: build test lint fmt fuzz dist runnel-test clean
+.PHONY: build test lint fmt fuzz bench dist runnel-test clean
 
 ## build: Plugin für dieses System nach bin/ bauen
 build:
@@ -25,9 +25,14 @@ lint:
 fmt:
 	$(GOLANGCI_LINT) fmt ./...
 
-## fuzz: Filter mit Platzhaltern mit zufälligen Eingaben
+## fuzz: Filter mit Platzhaltern und Zeitangaben mit zufälligen Eingaben
 fuzz:
 	go test -run '^$$' -fuzz FuzzFillFilter -fuzztime $(FUZZTIME) .
+	go test -run '^$$' -fuzz FuzzParseTime -fuzztime $(FUZZTIME) .
+
+## bench: Umwandeln von Einträgen in Datensätze
+bench:
+	go test -run '^$$' -bench . -benchmem .
 
 ## dist: Release-Archive und SHA256SUMS nach dist/
 dist:

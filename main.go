@@ -1,5 +1,6 @@
 // Command ldap is the Runnel plugin "ldap": it searches, checks sign-ins and changes
-// entries in LDAP directories such as Active Directory or OpenLDAP. Runnel starts it; see
+// entries in LDAP directories such as Active Directory or OpenLDAP, and reads entries as
+// records in pipelines (ldap.input). Runnel starts it; see
 // README.md.
 package main
 
@@ -17,6 +18,7 @@ func newPlugin() *runnel.Plugin {
 		Test:        testConnection,
 	})
 	addActions(p)
+	addInput(p)
 	return p
 }
 
