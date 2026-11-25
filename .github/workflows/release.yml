@@ -2,7 +2,8 @@ name: Release
 
 # Builds the archives of the plugin and publishes them as a GitHub release
 # (docs/dev/PLUGINS.md of Runnel, "Namen und Veröffentlichung"):
-# runnel-plugin-NAME_VERSION_OS_ARCH.zip and SHA256SUMS.
+# runnel-plugin-NAME_VERSION_OS_ARCH.zip with generated THIRD_PARTY_NOTICES, a CycloneDX SBOM
+# per archive (.cdx.json, licenses checked against the allowed ones) and SHA256SUMS.
 
 on:
   push:
@@ -80,7 +81,9 @@ jobs:
       - name: Attest build provenance
         uses: actions/attest@v4
         with:
-          subject-path: dist/*.zip
+          subject-path: |
+            dist/*.zip
+            dist/*.cdx.json
 
       - name: Create GitHub release
         env:
@@ -95,4 +98,4 @@ jobs:
           if [[ "$VERSION" == *-* ]]; then
             flags+=(--prerelease)
           fi
-          gh release create "$VERSION" dist/*.zip dist/SHA256SUMS "${flags[@]}"
+          gh release create "$VERSION" dist/*.zip dist/*.cdx.json dist/SHA256SUMS "${flags[@]}"

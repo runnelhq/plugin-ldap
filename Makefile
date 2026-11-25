@@ -1,12 +1,14 @@
 # Runnel-Plugin "ldap". Ziele: make build | test | lint | fuzz | dist | runnel-test
-GOLANGCI_LINT_VERSION := v2.15.0
+GOLANGCI_LINT_VERSION   := v2.15.0
+CYCLONEDX_GOMOD_VERSION := v1.12.0
+CYCLONEDX_GOMOD         := bin/tools/$(CYCLONEDX_GOMOD_VERSION)/cyclonedx-gomod
 # Ohne passendes golangci-lint im PATH: make lint GOLANGCI_LINT=bin/tools/golangci-lint
 GOLANGCI_LINT ?= golangci-lint
 FUZZTIME      ?= 30s
 # Runnel für die Tests gegen den Host, z. B. RUNNEL_BIN=../runnel/bin/runnel
 RUNNEL_BIN    ?=
 
-.PHONY: build test lint fmt fuzz bench dist runnel-test clean
+.PHONY: build test lint fmt fuzz bench dist notices runnel-test clean
 
 ## build: Plugin für dieses System nach bin/ bauen
 build:
@@ -34,9 +36,13 @@ fuzz:
 bench:
 	go test -run '^$$' -bench . -benchmem .
 
-## dist: Release-Archive und SHA256SUMS nach dist/
-dist:
-	scripts/dist.sh
+## dist: Release-Archive mit Lizenzhinweisen, SBOMs (CycloneDX) und SHA256SUMS nach dist/
+dist: $(CYCLONEDX_GOMOD)
+	CYCLONEDX_GOMOD=$(CURDIR)/$(CYCLONEDX_GOMOD) scripts/dist.sh
+
+## notices: Lizenzhinweise der eingebauten Abhängigkeiten ausgeben
+notices:
+	@scripts/third-party-notices.sh
 
 ## runnel-test: nur die Tests gegen Runnel (RUNNEL_BIN nötig)
 runnel-test:
@@ -48,3 +54,6 @@ clean:
 
 bin/tools/golangci-lint:
 	GOBIN=$(CURDIR)/bin/tools go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+
+$(CYCLONEDX_GOMOD):
+	GOBIN=$(CURDIR)/$(dir $@) go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@$(CYCLONEDX_GOMOD_VERSION)
