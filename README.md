@@ -11,12 +11,13 @@ u. a.), prüft Anmeldungen, ändert Einträge und liest Einträge als Datensätz
 | Actions | `ldap.search`, `ldap.authenticate`, `ldap.add`, `ldap.modify`, `ldap.delete` |
 | Transforms | `ldap.input` (Eingabe mit „Detect fields“) |
 | Runnel | Actions und Connection-Typ ab S49c, `ldap.input` ab S50b |
-| Lizenz | MIT; Lizenzen der Abhängigkeiten in `THIRD_PARTY_NOTICES` |
+| Lizenz | MIT; Lizenzen der Abhängigkeiten in `THIRD_PARTY_NOTICES` und in der SBOM (`.cdx.json`) jedes Archivs |
 
 ## Installieren
 
 1. Archiv für das System von den [Releases](https://github.com/runnelhq/plugin-ldap/releases) laden
-   (`runnel-plugin-ldap_<version>_windows_amd64.zip`) und die Prüfsumme mit `SHA256SUMS` vergleichen.
+   (`runnel-plugin-ldap_<version>_windows_amd64.zip`) und die Prüfsumme mit `SHA256SUMS` vergleichen. Zu jedem Archiv gibt es
+   eine SBOM (`.cdx.json`, CycloneDX) mit allen eingebauten Komponenten und ihren Lizenzen.
 2. In den Ordner `plugins/` des Projekts entpacken, sodass `plugins/ldap/plugin.yaml` entsteht.
 3. Freigeben und prüfen:
 
@@ -206,7 +207,8 @@ verschieben (`modifyDN`), Kerberos/NTLM-Anmeldung, ein Transform zum Nachschlage
 | Lint (golangci-lint v2.15.0) | `make lint` (ohne passendes golangci-lint: `make bin/tools/golangci-lint lint GOLANGCI_LINT=bin/tools/golangci-lint`) |
 | Fuzzing | `make fuzz FUZZTIME=1m` |
 | Benchmark | `make bench` |
-| Release-Archive | `make dist` → `dist/*.zip`, `dist/SHA256SUMS` |
+| Release-Archive | `make dist` → `dist/*.zip` mit erzeugten `THIRD_PARTY_NOTICES`, je Archiv eine SBOM (`*.cdx.json`, CycloneDX) und `dist/SHA256SUMS`; scheitert, wenn eine Abhängigkeit keine oder keine erlaubte Lizenz hat (MIT, BSD-2/3-Clause, Apache-2.0, ISC) |
+| Lizenzhinweise ansehen | `make notices` |
 | Release veröffentlichen | `version` in `plugin.yaml` und `main.go` erhöhen, mergen, dann Tag `v<version>` pushen oder den Workflow „Release“ auf `main` mit der Version starten; er prüft die Version, testet, baut die Archive mit Herkunftsnachweis und legt das GitHub-Release an |
 
 Unter Ubuntu verhindert das AppArmor-Profil von `slapd` den Zugriff auf temporäre Ordner; die CI schaltet es ab. Gegen

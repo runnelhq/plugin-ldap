@@ -107,7 +107,7 @@ jobs:
       - run: make fuzz FUZZTIME=5m
 
   dist:
-    name: Release archives
+    name: Release archives and licenses
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -115,4 +115,5 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make dist
+      - name: Archives, license notices and SBOMs (licenses checked)
+        run: make dist
