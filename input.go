@@ -53,6 +53,9 @@ var inputTypes = []string{runnel.TypeString, runnel.TypeInt, runnel.TypeBool, ru
 const batchSize = 500
 
 func addInput(p *runnel.Plugin) {
+	// The category input stays: without it the editor offers a link into the input, whose
+	// batches it never reads. The actions have no category and stand in the group of the
+	// plugin ("Plugin: ldap").
 	runnel.AddTransform(p, runnel.Transform[inputConfig]{
 		Type: "ldap.input", Category: runnel.CategoryInput, Label: "LDAP Input",
 		Description:  "Reads the entries of an LDAP search (Active Directory, OpenLDAP) as records",

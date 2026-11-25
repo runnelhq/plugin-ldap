@@ -60,6 +60,28 @@ func TestDescribe(t *testing.T) {
 	}
 }
 
+// The actions have no category, so that Runnel shows them in the group "Plugin: ldap";
+// ldap.input keeps the category input.
+func TestCategories(t *testing.T) {
+	c := runneltest.Start(t, newPlugin())
+	d, err := c.Describe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range d.Actions {
+		if a.Category != "" {
+			t.Errorf("%s: category %q", a.Type, a.Category)
+		}
+	}
+	raw, err := c.Call("describe", map[string]any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"type":"ldap.input","kind":"transform","category":"input"`) {
+		t.Errorf("ldap.input without category input: %s", raw)
+	}
+}
+
 func TestConnectionTest(t *testing.T) {
 	s := ldaptest.Start(t)
 	c := runneltest.Start(t, newPlugin())
