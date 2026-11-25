@@ -79,31 +79,31 @@ type changeOutput struct {
 
 func addActions(p *runnel.Plugin) {
 	runnel.AddAction(p, runnel.Action[searchConfig]{
-		Type: "ldap.search", Category: runnel.CategoryNetwork, Label: "Search LDAP",
+		Type: "ldap.search", Label: "Search LDAP",
 		Description: "Searches a directory (LDAP, Active Directory) and returns the entries with their attributes",
 		Example:     "type: ldap.search\nwith:\n  connection: ad\n  filter: (&(objectClass=user)(sAMAccountName={user}))\n  filterValues:\n    user: ${USER}\n  attributes: [displayName, mail, memberOf]\n",
 		Run:         search,
 	})
 	runnel.AddAction(p, runnel.Action[authConfig]{
-		Type: "ldap.authenticate", Category: runnel.CategoryNetwork, Label: "Check LDAP sign-in",
+		Type: "ldap.authenticate", Label: "Check LDAP sign-in",
 		Description: "Checks user name and password against the directory: finds the user and signs in as it",
 		Example:     "type: ldap.authenticate\nwith:\n  connection: ad\n  username: ${USER}\n  password: ${PASSWORD}\n  attributes: [memberOf]\n",
 		Run:         authenticate,
 	})
 	runnel.AddAction(p, runnel.Action[addConfig]{
-		Type: "ldap.add", Category: runnel.CategoryNetwork, Label: "Add LDAP entry",
+		Type: "ldap.add", Label: "Add LDAP entry",
 		Description: "Adds an entry to the directory",
 		Example:     "type: ldap.add\nwith:\n  connection: ldap\n  dn: uid=jdoe,ou=people,dc=example,dc=org\n  attributes:\n    objectClass: [inetOrgPerson]\n    cn: Jane Doe\n    sn: Doe\n",
 		Run:         add,
 	})
 	runnel.AddAction(p, runnel.Action[modifyConfig]{
-		Type: "ldap.modify", Category: runnel.CategoryNetwork, Label: "Change LDAP entry",
+		Type: "ldap.modify", Label: "Change LDAP entry",
 		Description: "Changes attributes of an entry: replaces, adds or removes values",
 		Example:     "type: ldap.modify\nwith:\n  connection: ad\n  dn: ${USER_DN}\n  replace:\n    telephoneNumber: ${PHONE}\n",
 		Run:         modify,
 	})
 	runnel.AddAction(p, runnel.Action[deleteConfig]{
-		Type: "ldap.delete", Category: runnel.CategoryNetwork, Label: "Delete LDAP entry",
+		Type: "ldap.delete", Label: "Delete LDAP entry",
 		Description: "Deletes an entry of the directory",
 		Example:     "type: ldap.delete\nwith:\n  connection: ldap\n  dn: uid=jdoe,ou=people,dc=example,dc=org\n  ignoreMissing: true\n",
 		Run:         remove,
