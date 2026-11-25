@@ -6,7 +6,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 name=$(sed -n 's/^name:[[:space:]]*//p' plugin.yaml)
-platforms=${PLATFORMS:-"windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/arm64"}
+# The systems Runnel itself is released for (Makefile and release workflow of Runnel).
+platforms=${PLATFORMS:-"windows/amd64 linux/amd64"}
 
 cat <<HEADER
 Third-party software notices for the Runnel plugin $name
