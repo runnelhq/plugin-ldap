@@ -15,16 +15,75 @@ u. a.), prüft Anmeldungen, ändert Einträge und liest Einträge als Datensätz
 
 ## Installieren
 
-1. Archiv für das System von den [Releases](https://github.com/runnelhq/plugin-ldap/releases) laden
-   (`runnel-plugin-ldap_<version>_windows_amd64.zip`) und die Prüfsumme mit `SHA256SUMS` vergleichen. Zu jedem Archiv gibt es
-   eine SBOM (`.cdx.json`, CycloneDX) mit allen eingebauten Komponenten und ihren Lizenzen.
-2. In den Ordner `plugins/` des Projekts entpacken, sodass `plugins/ldap/plugin.yaml` entsteht.
-3. Freigeben und prüfen:
+Das Plugin gehört in den Ordner `plugins/` eines Runnel-Projekts. Runnel startet es erst, wenn es auf dem Rechner für
+dieses Projekt freigegeben ist. Beispiel unter Windows mit dem Projekt `D:\flows`:
 
-```bash
+**1. Archiv laden und prüfen.** Von den [Releases](https://github.com/runnelhq/plugin-ldap/releases) das Archiv für das
+System laden, dazu `SHA256SUMS`:
+
+| System | Archiv |
+|---|---|
+| Windows (Intel/AMD) | `runnel-plugin-ldap_<version>_windows_amd64.zip` |
+| Windows (ARM) | `runnel-plugin-ldap_<version>_windows_arm64.zip` |
+| Linux | `runnel-plugin-ldap_<version>_linux_amd64.zip` bzw. `…_linux_arm64.zip` |
+| macOS (Apple-Chip) | `runnel-plugin-ldap_<version>_darwin_arm64.zip` |
+
+Das Archiv eines anderen Systems hilft nicht: Die `plugin.yaml` darin nennt nur das Programm ihres Systems.
+
+```powershell
+Get-FileHash .\runnel-plugin-ldap_0.1.0_windows_amd64.zip -Algorithm SHA256
+# muss mit der Zeile in SHA256SUMS übereinstimmen
+```
+
+Wer mehr Sicherheit will, prüft zusätzlich die Herkunft mit der GitHub-CLI:
+`gh attestation verify runnel-plugin-ldap_0.1.0_windows_amd64.zip --repo runnelhq/plugin-ldap`. Zu jedem Archiv gibt
+es eine SBOM (`.cdx.json`, CycloneDX) mit allen eingebauten Komponenten und ihren Lizenzen.
+
+**2. In das Projekt entpacken,** sodass `plugins/ldap/plugin.yaml` entsteht:
+
+```powershell
+Expand-Archive .\runnel-plugin-ldap_0.1.0_windows_amd64.zip -DestinationPath D:\flows\plugins
+```
+
+```text
+D:\flows\
+├─ project.yaml
+└─ plugins\
+   └─ ldap\
+      ├─ plugin.yaml
+      ├─ README.md            # diese Anleitung, im Editor lesbar
+      ├─ bin\ldap.exe
+      ├─ LICENSE
+      └─ THIRD_PARTY_NOTICES
+```
+
+**3. Freigeben.** Runnel zeigt Name, Version, Namensraum, Programm und den Hash des Ordners und fragt nach; `y` gibt frei
+(`--yes` für Skripte):
+
+```powershell
 runnel plugins trust D:\flows --plugin ldap
+```
+
+Läuft Runnel als Windows-Dienst, zusätzlich mit `--service` in einer Konsole „Als Administrator“: Die Freigaben des
+Dienstes sind getrennt von denen des Benutzers. Im Editor geht die Freigabe auch über den Hinweis „Trust“ am Plugin.
+
+**4. Prüfen:**
+
+```powershell
 runnel plugins D:\flows
 ```
+
+Das Plugin steht dort als `trusted` mit seinen Typen. Danach stehen sie in Workflows und Pipelines und in der Palette des
+Editors bereit (die Actions in der Gruppe „Plugin: ldap“, `ldap.input` unter den Eingaben); `runnel validate D:\flows` prüft die Dateien, die sie nutzen.
+
+**5. Connection anlegen.** Die Actions und `ldap.input` brauchen eine Connection vom Typ `ldap`, z. B.
+`connections/ad.yaml` (siehe [Connection](#connection)); im Editor prüft „Test connection“ die Anmeldung.
+
+**Update:** den Ordner `plugins/ldap/` durch den Inhalt des neuen Archivs ersetzen und erneut
+`runnel plugins trust` ausführen. Jede Änderung im Ordner hebt die Freigabe auf; bis dahin meldet Runnel das Plugin als
+`changed since trusted` und startet keine Läufe, die es brauchen.
+
+**Entfernen:** `runnel plugins untrust D:\flows --plugin ldap`, dann den Ordner löschen.
 
 ## Connection
 
