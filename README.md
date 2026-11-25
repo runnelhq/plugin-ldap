@@ -207,6 +207,7 @@ verschieben (`modifyDN`), Kerberos/NTLM-Anmeldung, ein Transform zum Nachschlage
 | Fuzzing | `make fuzz FUZZTIME=1m` |
 | Benchmark | `make bench` |
 | Release-Archive | `make dist` → `dist/*.zip`, `dist/SHA256SUMS` |
+| Release veröffentlichen | `version` in `plugin.yaml` und `main.go` erhöhen, mergen, dann Tag `v<version>` pushen oder den Workflow „Release“ auf `main` mit der Version starten; er prüft die Version, testet, baut die Archive mit Herkunftsnachweis und legt das GitHub-Release an |
 
 Unter Ubuntu verhindert das AppArmor-Profil von `slapd` den Zugriff auf temporäre Ordner; die CI schaltet es ab. Gegen
 ein echtes Active Directory gibt es keine automatischen Tests – dafür einmal von Hand (Suche mit Paging,
