@@ -7,4 +7,3 @@ namespace: ldap
 executable:
   windows: bin/ldap.exe
   linux: bin/ldap
-  darwin: bin/ldap

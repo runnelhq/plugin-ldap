@@ -23,12 +23,11 @@ System laden, dazu `SHA256SUMS`:
 
 | System | Archiv |
 |---|---|
-| Windows (Intel/AMD) | `runnel-plugin-ldap_<version>_windows_amd64.zip` |
-| Windows (ARM) | `runnel-plugin-ldap_<version>_windows_arm64.zip` |
-| Linux | `runnel-plugin-ldap_<version>_linux_amd64.zip` bzw. `…_linux_arm64.zip` |
-| macOS (Apple-Chip) | `runnel-plugin-ldap_<version>_darwin_arm64.zip` |
+| Windows (x64) | `runnel-plugin-ldap_<version>_windows_amd64.zip` |
+| Linux (x64) | `runnel-plugin-ldap_<version>_linux_amd64.zip` |
 
-Das Archiv eines anderen Systems hilft nicht: Die `plugin.yaml` darin nennt nur das Programm ihres Systems.
+Das sind die Systeme, für die es Runnel gibt. Das Archiv eines anderen Systems hilft nicht: Die `plugin.yaml`
+darin nennt nur das Programm ihres Systems.
 
 ```powershell
 Get-FileHash .\runnel-plugin-ldap_0.1.0_windows_amd64.zip -Algorithm SHA256
