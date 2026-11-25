@@ -1,0 +1,98 @@
+name: Release
+
+# Builds the archives of the plugin and publishes them as a GitHub release
+# (docs/dev/PLUGINS.md of Runnel, "Namen und Veröffentlichung"):
+# runnel-plugin-NAME_VERSION_OS_ARCH.zip and SHA256SUMS.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, e.g. v0.1.0 or v0.1.0-rc.1 (the tag is created on the selected commit of main)"
+        required: true
+        type: string
+
+permissions:
+  contents: write # create the release and tag
+  id-token: write # sign attestations (Sigstore)
+  attestations: write # store attestations
+  artifact-metadata: write # storage records for attestations
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Determine version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            version="$INPUT_VERSION"
+            if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+              echo "::error::Manual releases must be started from the main branch"
+              exit 1
+            fi
+          else
+            version="$GITHUB_REF_NAME"
+          fi
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version '$version' (expected e.g. v0.1.0 or v0.1.0-rc.1)"
+            exit 1
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]] && git ls-remote --exit-code --tags origin "refs/tags/$version" >/dev/null; then
+            echo "::error::Tag $version already exists"
+            exit 1
+          fi
+          # The version in plugin.yaml must match the tag (a test checks main.go against plugin.yaml).
+          yaml_version="$(sed -n 's/^version:[[:space:]]*//p' plugin.yaml)"
+          if [[ "v$yaml_version" != "$version" ]]; then
+            echo "::error::plugin.yaml has version '$yaml_version', the release is '$version'"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Install OpenLDAP (slapd) for the tests
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y slapd
+          # The AppArmor profile of slapd forbids the temporary folders of the tests.
+          if [ -f /etc/apparmor.d/usr.sbin.slapd ]; then sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.slapd || true; fi
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build archives
+        run: make dist
+
+      - name: Attest build provenance
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*.zip
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=(--generate-notes --title "Runnel plugin ldap $VERSION")
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            flags+=(--target "$GITHUB_SHA")
+          else
+            flags+=(--verify-tag)
+          fi
+          if [[ "$VERSION" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$VERSION" dist/*.zip dist/SHA256SUMS "${flags[@]}"
