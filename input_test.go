@@ -31,7 +31,7 @@ func TestInput(t *testing.T) {
 	if err != nil || res.Error != "" {
 		t.Fatal(err, res.Error)
 	}
-	recs := res.Records(runnel.Main)
+	recs := res.Records(runnel.ToMain)
 	if len(recs) != 2 {
 		t.Fatalf("records = %v", recs)
 	}
@@ -54,7 +54,7 @@ func TestInput(t *testing.T) {
 	if err != nil || res.Error != "" {
 		t.Fatal(err, res.Error)
 	}
-	errs := res.Records(runnel.Error)
+	errs := res.Records(runnel.ToError)
 	if len(errs) != 1 || errs[0]["_error"] != `"Alice Doe" is not a whole number` || errs[0]["_errorField"] != "n" || errs[0]["uid"] != "alice" {
 		t.Errorf("errors = %v", errs)
 	}
@@ -64,7 +64,7 @@ func TestInput(t *testing.T) {
 	if err != nil || res.Error != "" {
 		t.Fatal(err, res.Error)
 	}
-	recs = res.Records(runnel.Main)
+	recs = res.Records(runnel.ToMain)
 	if len(recs) != 1 || !strings.HasPrefix(recs[0]["dn"].(string), "uid=") || recs[0]["cn"] == nil || recs[0]["mail"] == nil {
 		t.Errorf("records = %v", recs)
 	}
