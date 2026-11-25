@@ -151,11 +151,11 @@ func readEntries(ctx context.Context, st *runnel.Stream, c inputConfig) error {
 func emitFields(ctx context.Context, st *runnel.Stream, page []*ldap.Entry, c inputConfig, fields runnel.Fields) error {
 	var rows, errs [][]any
 	flush := func() error {
-		if err := st.Emit(ctx, runnel.Main, fields, rows); err != nil {
+		if err := st.Emit(ctx, runnel.ToMain, fields, rows); err != nil {
 			return err
 		}
 		rows = nil
-		if err := st.Emit(ctx, runnel.Error, runnel.ErrorFields(fields), errs); err != nil {
+		if err := st.Emit(ctx, runnel.ToError, runnel.ErrorFields(fields), errs); err != nil {
 			return err
 		}
 		errs = nil
@@ -198,14 +198,14 @@ func emitAll(ctx context.Context, st *runnel.Stream, page []*ldap.Entry, sep str
 			row = append(row, strings.Join(decodeValues(a.Name, a.ByteValues), sep))
 		}
 		if !slices.Equal(fs, fields) || len(rows) >= batchSize {
-			if err := st.Emit(ctx, runnel.Main, fields, rows); err != nil {
+			if err := st.Emit(ctx, runnel.ToMain, fields, rows); err != nil {
 				return err
 			}
 			fields, rows = fs, nil
 		}
 		rows = append(rows, row)
 	}
-	return st.Emit(ctx, runnel.Main, fields, rows)
+	return st.Emit(ctx, runnel.ToMain, fields, rows)
 }
 
 // fieldValue converts the values of an attribute to the type of the field; a missing
