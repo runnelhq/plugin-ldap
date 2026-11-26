@@ -61,6 +61,20 @@ func addInput(p *runnel.Plugin) {
 		Description:  "Reads the entries of an LDAP search (Active Directory, OpenLDAP) as records",
 		Example:      "type: ldap.input\nwith:\n  connection: ad\n  baseDn: OU=Users,DC=example,DC=com\n  filter: (&(objectClass=user)(objectCategory=person))\n  fields:\n    - { name: login, from: sAMAccountName }\n    - { name: mail }\n    - { name: groups, from: memberOf, type: json }\n    - { name: lastLogon, from: lastLogonTimestamp, type: datetime }\n",
 		RecordErrors: true,
+		Reference: runnel.Reference{
+			Outputs: []runnel.OutputField{{Name: "<fields[].name>", Type: "any", Description: "The value of the attribute in the type of the field; null if the entry has no such attribute"}},
+			Records: "Reads the entries page by page and passes one record per entry to the data links, with the fields in " +
+				"fields; without fields, dn and all attributes of the entry as text (several values joined with separator). " +
+				"It has no incoming links.",
+			Errors: "An entry with a value that does not fit the type of its field (int, bool, datetime) goes to the error link " +
+				"with _error and _errorField; without error link, the pipeline stops. Fails when the connection or the search " +
+				"fails, the filter is invalid or a type is unknown.",
+			Limits: []string{
+				"sizeLimit limits the entries read (default 0: all).",
+				"pageSize reads the entries in pages (default 500); only one page is held in memory.",
+				connectionTimeout,
+			},
+		},
 		Run:          readEntries,
 		Init:         initInput,
 		DetectFields: detectInput,

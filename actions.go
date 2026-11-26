@@ -82,32 +82,88 @@ func addActions(p *runnel.Plugin) {
 		Type: "ldap.search", Label: "Search LDAP",
 		Description: "Searches a directory (LDAP, Active Directory) and returns the entries with their attributes",
 		Example:     "type: ldap.search\nwith:\n  connection: ad\n  filter: (&(objectClass=user)(sAMAccountName={user}))\n  filterValues:\n    user: ${USER}\n  attributes: [displayName, mail, memberOf]\n",
-		Run:         search,
+		Reference: runnel.Reference{
+			Outputs: []runnel.OutputField{
+				{Name: "output.entries", Type: "list", Description: "The entries found, each with dn and attributes"},
+				{Name: "output.entries[].dn", Type: "string", Description: "DN of the entry"},
+				{Name: "output.entries[].attributes", Type: "object", Description: "The attributes by name, each with a list of texts; GUIDs and SIDs of Active Directory as usual, other binary values in Base64"},
+				{Name: "output.count", Type: "integer", Description: "Number of entries"},
+			},
+			Errors: "Fails when the connection fails (network, TLS, sign-in of the connection), when the filter is invalid " +
+				"or uses a {name} that is not in filterValues, when the search finds more than sizeLimit entries, " +
+				"or when the server refuses the search (e.g. no permission, baseDn does not exist).",
+			Limits: []string{
+				"sizeLimit limits the entries (default 1000, at most 100000); all of them become part of the result of the run.",
+				"pageSize reads the entries in pages (default 500).",
+				connectionTimeout,
+			},
+		},
+		Run: search,
 	})
 	runnel.AddAction(p, runnel.Action[authConfig]{
 		Type: "ldap.authenticate", Label: "Check LDAP sign-in",
 		Description: "Checks user name and password against the directory: finds the user and signs in as it",
 		Example:     "type: ldap.authenticate\nwith:\n  connection: ad\n  username: ${USER}\n  password: ${PASSWORD}\n  attributes: [memberOf]\n",
-		Run:         authenticate,
+		Reference: runnel.Reference{
+			Outputs: []runnel.OutputField{
+				{Name: "output.authenticated", Type: "boolean", Description: "Whether user name and password are right"},
+				{Name: "output.dn", Type: "string", Description: "DN of the user; empty if no user was found"},
+				{Name: "output.attributes", Type: "object", Description: "The attributes named in attributes after a successful sign-in, each with a list of texts"},
+				{Name: "output.error", Type: "string", Description: "invalid user or password if the sign-in was refused; empty otherwise"},
+			},
+			Errors: "An unknown user, a wrong password or an empty password give authenticated false, not an error. " +
+				"Fails when username is empty, when userFilter is invalid or finds several users, or when the connection fails.",
+			Limits: []string{connectionTimeout},
+		},
+		Run: authenticate,
 	})
 	runnel.AddAction(p, runnel.Action[addConfig]{
 		Type: "ldap.add", Label: "Add LDAP entry",
 		Description: "Adds an entry to the directory",
 		Example:     "type: ldap.add\nwith:\n  connection: ldap\n  dn: uid=jdoe,ou=people,dc=example,dc=org\n  attributes:\n    objectClass: [inetOrgPerson]\n    cn: Jane Doe\n    sn: Doe\n",
-		Run:         add,
+		Reference: runnel.Reference{
+			Outputs: changeOutputs("Always true"),
+			Errors: "Fails when attributes is empty, the entry exists already, it does not fit its object classes, " +
+				"an attribute is unknown or a value is not allowed, or the user of the connection has no permission.",
+			Limits: []string{connectionTimeout},
+		},
+		Run: add,
 	})
 	runnel.AddAction(p, runnel.Action[modifyConfig]{
 		Type: "ldap.modify", Label: "Change LDAP entry",
 		Description: "Changes attributes of an entry: replaces, adds or removes values",
 		Example:     "type: ldap.modify\nwith:\n  connection: ad\n  dn: ${USER_DN}\n  replace:\n    telephoneNumber: ${PHONE}\n",
-		Run:         modify,
+		Reference: runnel.Reference{
+			Outputs: changeOutputs("Always true"),
+			Errors: "Fails when none of replace, add and delete is given, the entry does not exist, a value is not allowed, " +
+				"or the user of the connection has no permission. All changes go in one request: the server applies all or none.",
+			Limits: []string{connectionTimeout},
+		},
+		Run: modify,
 	})
 	runnel.AddAction(p, runnel.Action[deleteConfig]{
 		Type: "ldap.delete", Label: "Delete LDAP entry",
 		Description: "Deletes an entry of the directory",
 		Example:     "type: ldap.delete\nwith:\n  connection: ldap\n  dn: uid=jdoe,ou=people,dc=example,dc=org\n  ignoreMissing: true\n",
-		Run:         remove,
+		Reference: runnel.Reference{
+			Outputs: changeOutputs("Whether the entry was deleted; false if it did not exist (ignoreMissing)"),
+			Errors: "Fails when the entry does not exist (unless ignoreMissing), has entries below it, " +
+				"or the user of the connection has no permission.",
+			Limits: []string{connectionTimeout},
+		},
+		Run: remove,
 	})
+}
+
+// connectionTimeout is the limit of time that all types share.
+const connectionTimeout = "timeout of the connection limits connecting and each request (default 30s)."
+
+// changeOutputs describes changeOutput, the result of ldap.add, ldap.modify and ldap.delete.
+func changeOutputs(changed string) []runnel.OutputField {
+	return []runnel.OutputField{
+		{Name: "output.dn", Type: "string", Description: "DN of the entry"},
+		{Name: "output.changed", Type: "boolean", Description: changed},
+	}
 }
 
 var placeholder = regexp.MustCompile(`\{([A-Za-z_][A-Za-z0-9_-]*)\}`)

@@ -10,7 +10,7 @@ u. a.), prüft Anmeldungen, ändert Einträge und liest Einträge als Datensätz
 | Connection-Typ | `ldap` (mit „Test connection“ im Editor) |
 | Actions | `ldap.search`, `ldap.authenticate`, `ldap.add`, `ldap.modify`, `ldap.delete` |
 | Transforms | `ldap.input` (Eingabe mit „Detect fields“) |
-| Runnel | Actions und Connection-Typ ab S49c, `ldap.input` ab S50b |
+| Runnel | Actions und Connection-Typ ab S49c, `ldap.input` ab S50b; Referenz (Ergebnis, Fehler, Grenzen) in Katalog und Hilfe ab E15b |
 | Lizenz | MIT; Lizenzen der Abhängigkeiten in `THIRD_PARTY_NOTICES` und in der SBOM (`.cdx.json`) jedes Archivs |
 
 ## Installieren
