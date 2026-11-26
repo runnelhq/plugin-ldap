@@ -6,7 +6,7 @@ toolchain go1.26.11
 
 require (
 	github.com/go-ldap/ldap/v3 v3.4.15
-	github.com/runnelhq/sdk-go v0.2.1
+	github.com/runnelhq/sdk-go v0.2.2-0.20261126135309-d87519abc7e1
 )
 
 require (
